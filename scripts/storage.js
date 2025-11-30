@@ -75,7 +75,7 @@ const Storage = {
                     description: "Create reusable React components for the task board",
                     priority: "high",
                     tags: ["frontend", "react"],
-                    dueDate: "2024-02-15",
+                    dueDate: "2025-11-30",
                     status: "todo",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
@@ -86,7 +86,7 @@ const Storage = {
                     description: "Add HTML5 drag and drop functionality between columns",
                     priority: "medium",
                     tags: ["javascript", "ui"],
-                    dueDate: "2024-02-20",
+                    dueDate: "2025-11-30",
                     status: "in-progress",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
@@ -97,7 +97,7 @@ const Storage = {
                     description: "Implement persistence using browser localStorage",
                     priority: "low",
                     tags: ["javascript", "storage"],
-                    dueDate: "2024-02-10",
+                    dueDate: "2025-11-30",
                     status: "done",
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
