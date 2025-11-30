@@ -460,4 +460,55 @@ main {
         flex-direction: column;
         gap: 0;
     }
+    .task-card.dragging {
+    transform: rotate(5deg);
+    opacity: 0.6;
+    cursor: grabbing;
+}
+
+.task-list.drag-over {
+    background-color: rgba(0, 121, 191, 0.1);
+    border: 2px dashed #0079bf;
+    min-height: 120px;
+}
+
+.task-list.drag-over .empty-state {
+    display: none;
+}
+
+/* Drop Feedback Animation */
+.drop-feedback {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: var(--success-color);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    font-weight: 500;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
 }

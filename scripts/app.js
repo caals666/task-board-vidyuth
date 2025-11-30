@@ -11,6 +11,11 @@ const App = {
             Storage.initializeWithSampleData();
             App.renderTasks();
             App.updateTaskCounts();
+            
+            // Set up column drop events after DOM is ready
+            setTimeout(() => {
+                DragDrop.setupColumnDropEvents();
+            }, 100);
         });
     },
 
@@ -247,7 +252,6 @@ const App = {
         const taskElement = document.createElement('div');
         taskElement.className = `task-card priority-${task.priority}`;
         taskElement.id = `task-${task.id}`;
-        taskElement.draggable = true;
         
         // Format due date if exists
         let dueDateHtml = '';
@@ -294,6 +298,9 @@ const App = {
             }
         });
         
+        // Set up drag events for this task
+        DragDrop.setupTaskDragEvents(taskElement);
+        
         // Add to the appropriate column
         const columnId = `${task.status}-list`;
         const column = document.getElementById(columnId);
@@ -306,6 +313,7 @@ const App = {
         
         column.appendChild(taskElement);
     },
+
 
     updateTaskCounts: () => {
         const tasks = Storage.getTasks();

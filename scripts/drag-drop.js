@@ -1,8 +1,7 @@
-// Drag and drop functionality
+// Drag and drop functionality using HTML5 Drag and Drop API
 const DragDrop = {
     draggedTask: null,
     sourceColumn: null,
-    dragImage: null,
 
     init: () => {
         document.addEventListener('DOMContentLoaded', () => {
@@ -11,65 +10,58 @@ const DragDrop = {
     },
 
     setupEventListeners: () => {
-        // Add drag event listeners to all task cards
-        document.addEventListener('dragstart', DragDrop.handleDragStart);
-        document.addEventListener('dragend', DragDrop.handleDragEnd);
-        
-        // Add drop zone event listeners to all task lists
-        const dropZones = document.querySelectorAll('.task-list');
-        dropZones.forEach(zone => {
-            zone.addEventListener('dragover', DragDrop.handleDragOver);
-            zone.addEventListener('dragenter', DragDrop.handleDragEnter);
-            zone.addEventListener('dragleave', DragDrop.handleDragLeave);
-            zone.addEventListener('drop', DragDrop.handleDrop);
-        });
+        // We'll set up drag events when tasks are rendered
+        // This will be called from App.js after tasks are created
+    },
 
-        // Create drag image
-        DragDrop.dragImage = document.createElement('div');
-        DragDrop.dragImage.style.background = 'rgba(0, 121, 191, 0.1)';
-        DragDrop.dragImage.style.border = '2px dashed #0079bf';
-        DragDrop.dragImage.style.borderRadius = '8px';
-        DragDrop.dragImage.style.padding = '10px';
-        DragDrop.dragImage.style.color = '#0079bf';
-        DragDrop.dragImage.style.fontSize = '14px';
-        DragDrop.dragImage.style.position = 'absolute';
-        DragDrop.dragImage.style.top = '-1000px';
-        document.body.appendChild(DragDrop.dragImage);
+    // Set up drag events for a task element
+    setupTaskDragEvents: (taskElement) => {
+        taskElement.setAttribute('draggable', 'true');
+        
+        taskElement.addEventListener('dragstart', DragDrop.handleDragStart);
+        taskElement.addEventListener('dragend', DragDrop.handleDragEnd);
+    },
+
+    // Set up drop events for columns
+    setupColumnDropEvents: () => {
+        const columns = document.querySelectorAll('.task-list');
+        columns.forEach(column => {
+            column.addEventListener('dragover', DragDrop.handleDragOver);
+            column.addEventListener('dragenter', DragDrop.handleDragEnter);
+            column.addEventListener('dragleave', DragDrop.handleDragLeave);
+            column.addEventListener('drop', DragDrop.handleDrop);
+        });
     },
 
     handleDragStart: (e) => {
-        if (e.target.classList.contains('task-card')) {
-            DragDrop.draggedTask = e.target;
-            DragDrop.sourceColumn = DragDrop.draggedTask.closest('.task-list');
-            
-            // Set drag image
-            DragDrop.dragImage.textContent = `Moving: ${e.target.querySelector('.task-title').textContent}`;
-            e.dataTransfer.setDragImage(DragDrop.dragImage, 0, 0);
-            
-            e.dataTransfer.setData('text/plain', e.target.id);
-            e.dataTransfer.effectAllowed = 'move';
-            
-            e.target.classList.add('dragging');
-            
-            // Add active class to all drop zones
-            document.querySelectorAll('.task-list').forEach(zone => {
-                zone.classList.add('drop-zone');
-            });
-        }
+        DragDrop.draggedTask = e.target;
+        DragDrop.sourceColumn = e.target.closest('.task-list');
+        
+        // Add visual feedback
+        e.target.classList.add('dragging');
+        
+        // Set drag image and data
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', e.target.id);
+        
+        // Set drag image to be the element itself
+        setTimeout(() => {
+            e.target.style.opacity = '0.4';
+        }, 0);
     },
 
     handleDragEnd: (e) => {
-        if (e.target.classList.contains('task-card')) {
-            e.target.classList.remove('dragging');
-            
-            // Remove active class from all drop zones
-            document.querySelectorAll('.task-list').forEach(zone => {
-                zone.classList.remove('active', 'drop-zone');
-            });
-            
-            DragDrop.draggedTask = null;
-            DragDrop.sourceColumn = null;
-        }
+        // Remove visual feedback
+        e.target.classList.remove('dragging');
+        e.target.style.opacity = '1';
+        
+        // Remove drop zone highlights
+        document.querySelectorAll('.task-list').forEach(column => {
+            column.classList.remove('drag-over');
+        });
+        
+        DragDrop.draggedTask = null;
+        DragDrop.sourceColumn = null;
     },
 
     handleDragOver: (e) => {
@@ -79,72 +71,65 @@ const DragDrop = {
 
     handleDragEnter: (e) => {
         e.preventDefault();
-        const dropZone = e.target.classList.contains('task-list') 
-            ? e.target 
-            : e.target.closest('.task-list');
-            
+        const dropZone = e.target.closest('.task-list');
         if (dropZone) {
-            dropZone.classList.add('active');
+            dropZone.classList.add('drag-over');
         }
     },
 
     handleDragLeave: (e) => {
-        const dropZone = e.target.classList.contains('task-list') 
-            ? e.target 
-            : e.target.closest('.task-list');
-            
+        const dropZone = e.target.closest('.task-list');
         if (dropZone && !dropZone.contains(e.relatedTarget)) {
-            dropZone.classList.remove('active');
+            dropZone.classList.remove('drag-over');
         }
     },
 
     handleDrop: (e) => {
         e.preventDefault();
         
-        const dropZone = e.target.classList.contains('task-list') 
-            ? e.target 
-            : e.target.closest('.task-list');
-            
+        const dropZone = e.target.closest('.task-list');
         if (!dropZone) return;
         
-        dropZone.classList.remove('active');
+        dropZone.classList.remove('drag-over');
         
-        if (DragDrop.draggedTask) {
-            const taskId = DragDrop.draggedTask.id.replace('task-', '');
+        const taskId = e.dataTransfer.getData('text/plain').replace('task-', '');
+        const taskElement = document.getElementById(`task-${taskId}`);
+        
+        if (taskElement) {
             const newStatus = dropZone.getAttribute('data-status');
             
-            // Update task status in storage
+            // Update task in storage
             const tasks = Storage.getTasks();
             const taskIndex = tasks.findIndex(task => task.id === taskId);
             
             if (taskIndex !== -1) {
-                tasks[taskIndex].status = newStatus;
-                tasks[taskIndex].updatedAt = new Date().toISOString();
-                Storage.saveTasks(tasks);
+                const oldStatus = tasks[taskIndex].status;
                 
-                // Move the task element to the new column
-                if (DragDrop.sourceColumn !== dropZone) {
-                    dropZone.appendChild(DragDrop.draggedTask);
+                // Only update if status changed
+                if (oldStatus !== newStatus) {
+                    tasks[taskIndex].status = newStatus;
+                    tasks[taskIndex].updatedAt = new Date().toISOString();
+                    Storage.saveTasks(tasks);
+                    
+                    // Move task element to new column
+                    dropZone.appendChild(taskElement);
                     
                     // Update task counts
                     // eslint-disable-next-line no-undef
                     App.updateTaskCounts();
                     
-                    // Show success feedback
-                    DragDrop.showDropFeedback(`Task moved to ${newStatus.replace('-', ' ')}`);
-                }
-                
-                // Handle reordering within the same column
-                if (DragDrop.sourceColumn === dropZone) {
+                    // Show feedback
+                    DragDrop.showSuccessMessage(`Task moved to ${newStatus.replace('-', ' ')}`);
+                } else {
+                    // Reorder within same column
                     const afterElement = DragDrop.getDragAfterElement(dropZone, e.clientY);
-                    
                     if (afterElement) {
-                        dropZone.insertBefore(DragDrop.draggedTask, afterElement);
+                        dropZone.insertBefore(taskElement, afterElement);
                     } else {
-                        dropZone.appendChild(DragDrop.draggedTask);
+                        dropZone.appendChild(taskElement);
                     }
                     
-                    // Save the new order
+                    // Save new order
                     DragDrop.saveColumnOrder(dropZone);
                 }
             }
@@ -173,33 +158,32 @@ const DragDrop = {
         
         const tasks = Storage.getTasks();
         
-        // Update the order of tasks in the same status
+        // Update order for tasks in this status
         const statusTasks = tasks.filter(task => task.status === status);
-        
-        // Reorder based on DOM order
         const orderedTasks = [];
+        
         taskOrder.forEach(taskId => {
             const task = statusTasks.find(t => t.id === taskId);
             if (task) orderedTasks.push(task);
         });
         
-        // Add any tasks that are in this status but not in the DOM (shouldn't happen)
-        statusTasks.forEach(task => {
-            if (!orderedTasks.find(t => t.id === task.id)) {
-                orderedTasks.push(task);
-            }
-        });
-        
-        // Update the tasks array with the new order
+        // Combine with tasks from other statuses
         const otherTasks = tasks.filter(task => task.status !== status);
         const updatedTasks = [...otherTasks, ...orderedTasks];
         
         Storage.saveTasks(updatedTasks);
     },
 
-    showDropFeedback: (message) => {
+    showSuccessMessage: (message) => {
+        // Remove existing messages
+        const existingMessage = document.querySelector('.drop-feedback');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
         // Create feedback element
         const feedback = document.createElement('div');
+        feedback.className = 'drop-feedback';
         feedback.textContent = message;
         feedback.style.cssText = `
             position: fixed;
@@ -207,18 +191,19 @@ const DragDrop = {
             right: 20px;
             background: var(--success-color);
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--border-radius);
+            padding: 12px 20px;
+            border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             z-index: 1000;
-            animation: slideIn 0.3s ease-out;
+            font-weight: 500;
+            animation: slideInRight 0.3s ease-out;
         `;
         
         document.body.appendChild(feedback);
         
         // Remove after 2 seconds
         setTimeout(() => {
-            feedback.style.animation = 'slideOut 0.3s ease-in';
+            feedback.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => {
                 if (feedback.parentNode) {
                     feedback.parentNode.removeChild(feedback);
@@ -228,10 +213,19 @@ const DragDrop = {
     }
 };
 
-// Add CSS for feedback animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
+// Add CSS animations for drag and drop
+const dragDropStyles = `
+    .task-card.dragging {
+        transform: rotate(5deg);
+        opacity: 0.6;
+    }
+    
+    .task-list.drag-over {
+        background-color: rgba(0, 121, 191, 0.1);
+        border: 2px dashed #0079bf;
+    }
+    
+    @keyframes slideInRight {
         from {
             transform: translateX(100%);
             opacity: 0;
@@ -242,7 +236,7 @@ style.textContent = `
         }
     }
     
-    @keyframes slideOut {
+    @keyframes slideOutRight {
         from {
             transform: translateX(0);
             opacity: 1;
@@ -253,4 +247,8 @@ style.textContent = `
         }
     }
 `;
-document.head.appendChild(style);
+
+// Inject styles
+const styleSheet = document.createElement('style');
+styleSheet.textContent = dragDropStyles;
+document.head.appendChild(styleSheet);
