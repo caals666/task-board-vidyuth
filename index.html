@@ -10,32 +10,44 @@
     <header>
         <h1>Task Board</h1>
         <div class="controls">
-            <input type="text" id="search-input" placeholder="Search tasks...">
+            <input type="text" id="search-input" placeholder="Search by title or tags...">
             <select id="priority-filter">
                 <option value="all">All Priorities</option>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
             </select>
-            <button id="add-task-btn">Add Task</button>
+            <button id="add-task-btn">+ Add Task</button>
         </div>
     </header>
 
     <main>
         <div class="board">
             <div class="column" id="todo-column">
-                <h2>Todo</h2>
+                <div class="column-header">
+                    <h2>Todo</h2>
+                    <span class="task-count" id="todo-count">0</span>
+                </div>
                 <div class="task-list" id="todo-list" data-status="todo"></div>
+                <button class="add-to-column-btn" data-column="todo">+ Add Task</button>
             </div>
             
             <div class="column" id="in-progress-column">
-                <h2>In Progress</h2>
+                <div class="column-header">
+                    <h2>In Progress</h2>
+                    <span class="task-count" id="in-progress-count">0</span>
+                </div>
                 <div class="task-list" id="in-progress-list" data-status="in-progress"></div>
+                <button class="add-to-column-btn" data-column="in-progress">+ Add Task</button>
             </div>
             
             <div class="column" id="done-column">
-                <h2>Done</h2>
+                <div class="column-header">
+                    <h2>Done</h2>
+                    <span class="task-count" id="done-count">0</span>
+                </div>
                 <div class="task-list" id="done-list" data-status="done"></div>
+                <button class="add-to-column-btn" data-column="done">+ Add Task</button>
             </div>
         </div>
     </main>
@@ -53,23 +65,25 @@
                 </div>
                 <div class="form-group">
                     <label for="task-description">Description</label>
-                    <textarea id="task-description" rows="3"></textarea>
+                    <textarea id="task-description" rows="3" placeholder="Enter task description..."></textarea>
                 </div>
-                <div class="form-group">
-                    <label for="task-priority">Priority</label>
-                    <select id="task-priority">
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-priority">Priority</label>
+                        <select id="task-priority">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-due-date">Due Date</label>
+                        <input type="date" id="task-due-date">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="task-tags">Tags (comma separated)</label>
                     <input type="text" id="task-tags" placeholder="e.g. frontend, backend, bug">
-                </div>
-                <div class="form-group">
-                    <label for="task-due-date">Due Date</label>
-                    <input type="date" id="task-due-date">
                 </div>
                 <div class="form-group">
                     <label for="task-status">Status</label>

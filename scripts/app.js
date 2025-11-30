@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 // Main application logic
 const App = {
     currentFilter: '',
@@ -6,9 +7,10 @@ const App = {
     init: () => {
         document.addEventListener('DOMContentLoaded', () => {
             App.setupEventListeners();
-            // eslint-disable-next-line no-undef
             DragDrop.init();
+            Storage.initializeWithSampleData();
             App.renderTasks();
+            App.updateTaskCounts();
         });
     },
 
@@ -16,6 +18,14 @@ const App = {
         // Add task button
         document.getElementById('add-task-btn').addEventListener('click', () => {
             App.openTaskModal();
+        });
+
+        // Add task to column buttons
+        document.querySelectorAll('.add-to-column-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const status = e.target.getAttribute('data-column');
+                App.openTaskModal(null, status);
+            });
         });
 
         // Modal close button
@@ -52,9 +62,20 @@ const App = {
             App.currentPriority = e.target.value;
             App.renderTasks();
         });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                App.closeTaskModal();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('search-input').focus();
+            }
+        });
     },
 
-    openTaskModal: (taskId = null) => {
+    openTaskModal: (taskId = null, defaultStatus = 'todo') => {
         const modal = document.getElementById('task-modal');
         const modalTitle = document.getElementById('modal-title');
         const deleteBtn = document.getElementById('delete-task-btn');
@@ -69,9 +90,11 @@ const App = {
             modalTitle.textContent = 'Add New Task';
             deleteBtn.style.display = 'none';
             App.resetTaskForm();
+            document.getElementById('task-status').value = defaultStatus;
         }
         
         modal.style.display = 'block';
+        document.getElementById('task-title').focus();
     },
 
     closeTaskModal: () => {
@@ -81,7 +104,11 @@ const App = {
     resetTaskForm: () => {
         document.getElementById('task-form').reset();
         document.getElementById('task-id').value = '';
+        document.getElementById('task-priority').value = 'medium';
         document.getElementById('task-status').value = 'todo';
+        
+        // Clear date field
+        document.getElementById('task-due-date').value = '';
     },
 
     loadTaskData: (taskId) => {
@@ -130,7 +157,7 @@ const App = {
         } else {
             // Create new task
             task = {
-                id: Storage.getNextTaskId(),
+                id: Storage.generateTaskId(),
                 title: title,
                 description: document.getElementById('task-description').value,
                 priority: document.getElementById('task-priority').value,
@@ -149,6 +176,7 @@ const App = {
         
         Storage.saveTasks(tasks);
         App.renderTasks();
+        App.updateTaskCounts();
         App.closeTaskModal();
         
         // For the test case output
@@ -162,11 +190,11 @@ const App = {
         const taskId = document.getElementById('task-id').value;
         
         if (confirm('Are you sure you want to delete this task?')) {
-            const tasks = Storage.getTasks();
-            const updatedTasks = tasks.filter(task => task.id !== taskId);
-            Storage.saveTasks(updatedTasks);
-            App.renderTasks();
-            App.closeTaskModal();
+            if (Storage.softDeleteTask(taskId)) {
+                App.renderTasks();
+                App.updateTaskCounts();
+                App.closeTaskModal();
+            }
         }
     },
 
@@ -186,9 +214,28 @@ const App = {
         });
         
         // Clear all columns
-        document.getElementById('todo-list').innerHTML = '';
-        document.getElementById('in-progress-list').innerHTML = '';
-        document.getElementById('done-list').innerHTML = '';
+        const columns = ['todo', 'in-progress', 'done'];
+        columns.forEach(status => {
+            const column = document.getElementById(`${status}-list`);
+            column.innerHTML = '';
+            
+            // Add empty state if no tasks
+            const columnTasks = filteredTasks.filter(task => task.status === status);
+            if (columnTasks.length === 0) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.innerHTML = `
+                    <p>No tasks found</p>
+                    <button class="add-to-column-btn" data-column="${status}">+ Add Task</button>
+                `;
+                column.appendChild(emptyState);
+                
+                // Re-attach event listener to the new button
+                emptyState.querySelector('button').addEventListener('click', () => {
+                    App.openTaskModal(null, status);
+                });
+            }
+        });
         
         // Add tasks to their respective columns
         filteredTasks.forEach(task => {
@@ -198,7 +245,7 @@ const App = {
 
     createTaskElement: (task) => {
         const taskElement = document.createElement('div');
-        taskElement.className = 'task-card';
+        taskElement.className = `task-card priority-${task.priority}`;
         taskElement.id = `task-${task.id}`;
         taskElement.draggable = true;
         
@@ -209,7 +256,7 @@ const App = {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
-            const isOverdue = dueDate < today;
+            const isOverdue = dueDate < today && task.status !== 'done';
             dueDateHtml = `
                 <div class="due-date ${isOverdue ? 'overdue' : ''}">
                     <span>📅</span> ${dueDate.toLocaleDateString()}
@@ -241,13 +288,43 @@ const App = {
         `;
         
         // Add click event to edit task
-        taskElement.addEventListener('click', () => {
-            App.openTaskModal(task.id);
+        taskElement.addEventListener('click', (e) => {
+            if (!e.target.closest('.task-priority')) {
+                App.openTaskModal(task.id);
+            }
         });
         
         // Add to the appropriate column
         const columnId = `${task.status}-list`;
-        document.getElementById(columnId).appendChild(taskElement);
+        const column = document.getElementById(columnId);
+        
+        // Remove empty state if it exists
+        const emptyState = column.querySelector('.empty-state');
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        column.appendChild(taskElement);
+    },
+
+    updateTaskCounts: () => {
+        const tasks = Storage.getTasks();
+        const counts = {
+            'todo': 0,
+            'in-progress': 0,
+            'done': 0
+        };
+        
+        tasks.forEach(task => {
+            // eslint-disable-next-line no-prototype-builtins
+            if (counts.hasOwnProperty(task.status)) {
+                counts[task.status]++;
+            }
+        });
+        
+        document.getElementById('todo-count').textContent = counts.todo;
+        document.getElementById('in-progress-count').textContent = counts['in-progress'];
+        document.getElementById('done-count').textContent = counts.done;
     }
 };
 
