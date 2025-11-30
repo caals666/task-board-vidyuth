@@ -32,3 +32,7 @@ This application can be deployed to Vercel:
 - Click on any task to edit its details
 - Use the search box to filter tasks by content
 - Use the priority dropdown to filter by priority level
+
+## To view it live:
+
+[Task Board](https://task-board-vidyuth.vercel.app/)
